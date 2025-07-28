@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Movimientos de Altas</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: white;
+      color: black;
+      padding: 40px;
+    }
+    h1, h2, h3 {
+      text-align: center;
+      margin: 5px 0;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 40px;
+    }
+    th, td {
+      border: 1px solid black;
+      padding: 4px 6px;
+      font-size: 13px;
+      text-align: left;
+    }
+    th {
+      background-color: #d3d3d3;
+      font-weight: bold;
+    }
+    .footer {
+      margin-top: 30px;
+      text-align: right;
+      font-weight: bold;
+    }
+    .grupo-rubro, .grupo-subrubro {
+      font-weight: bold;
+      background-color: #f0f0f0;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h2>FUNCIÓN LEGISLATIVA</h2>
+    <h2>LA RIOJA</h2>
+    <h1>MOVIMIENTOS DE ALTAS DE BIENES MUEBLES</h1>
+    <h3>{{ mes.upper() if mes else 'MES' }} de {{ anio }}</h3>
+    <p><strong>Fecha de Presentación :</strong> {{ fecha_presentacion }}</p>
+    <p><strong>Codificación Básica :</strong> 2.0.000.</p>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>NRO ORDEN</th>
+        <th>FECHA ALTAS</th>
+        <th>CANT.</th>
+        <th>CONCEPTO</th>
+        <th>DISPOSICIÓN ADMINISTRATIVA</th>
+        <th>VALOR UNITARIO</th>
+        <th>VALOR TOTAL</th>
+        <th>CAUSAS DE ALTA</th>
+        <th>CÓDIGO PRESUP.</th>
+        <th>CLASE</th>
+        <th>IDENTIDAD</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% set total_general = 0 %}
+      {% set rubros_agrupados = registros | groupby("rubro_codigo") %}
+      {% for rubro_codigo, rubro_items in rubros_agrupados %}
+        <!-- Fila del rubro general -->
+        <tr class="grupo-rubro">
+          <td colspan="3">RUBRO {{ rubro_codigo[:3] }}...</td>
+          <td colspan="8">{{ rubro_items[0].rubro_general or 'MAQUINARIA Y EQUIPO' }}</td>
+        </tr>
+
+        {% set subrubros = rubro_items | groupby("codigo_presup") %}
+        {% for subrubro_codigo, items in subrubros %}
+          <!-- Fila del subrubro -->
+          <tr class="grupo-subrubro">
+            <td colspan="11">{{ subrubro_codigo }}. {{ items[0].rubro_nombre.upper() }}</td>
+          </tr>
+
+          {% for item in items %}
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td>{{ item.fecha_alta.strftime('%d/%m/%Y') if item.fecha_alta }}</td>
+              <td>{{ item.cantidad }}</td>
+              <td>{{ item.concepto }}</td>
+              <td>{{ item.disposicion }}</td>
+              <td>$ {{ "%.2f"|format(item.valor_unitario|float) }}</td>
+              <td>$ {{ "%.2f"|format(item.valor_total|float) }}</td>
+              <td>{{ item.causa_alta }}</td>
+              <td>{{ item.codigo_presup }}</td>
+              <td>{{ item.clase_nombre or 'SIN CLASE' }}</td>
+              <td>{{ item.identidad }}</td>
+            </tr>
+            {% set total_general = total_general + (item.valor_total or 0) %}
+          {% endfor %}
+        {% endfor %}
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="footer">
+    TOTAL GENERAL: $ {{ "%.2f"|format(total_general) }}
+  </div>
+
+</body>
+</html>
