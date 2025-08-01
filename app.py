@@ -236,12 +236,34 @@ def exportar_pdf_altas():
         "45": "VEHÍCULOS",
         "46": "MOBILIARIO",
         "47": "EQUIPO DE COMUNICACIONES",
-        # agregá más si los tenés
     }
     df["rubro_general"] = df["rubro_codigo"].map(mapa_rubro_general).fillna("SIN RUBRO")
 
+    # ✅ Conversión robusta de valor_total y valor_unitario
+    df["valor_total"] = pd.to_numeric(
+        df["valor_total"].astype(str)
+        .str.replace("$", "", regex=False)
+        .str.replace(",", "", regex=False)
+        .str.strip(),
+        errors="coerce"
+    ).fillna(0)
+
+    df["valor_unitario"] = pd.to_numeric(
+        df["valor_unitario"].astype(str)
+        .str.replace("$", "", regex=False)
+        .str.replace(",", "", regex=False)
+        .str.strip(),
+        errors="coerce"
+    ).fillna(0)
+
+    # ✅ Cálculo total general
+    total_general = df["valor_total"].sum()
+
+    # Debug en consola
+    print(df[["valor_total"]].head(10))
+    print("TOTAL GENERAL CALCULADO:", total_general)
+
     fecha_presentacion = datetime.now().strftime("%d/%m/%Y")
-    total_general = df["valor_total"].fillna(0).astype(float).sum()
 
     return render_template("formato_oficial_altas.html",
                            registros=df.to_dict(orient="records"),
@@ -257,6 +279,18 @@ def exportar_pdf_altas():
 app = Flask(__name__)
 app.secret_key = 'clave-secreta-segura-123'  # 🔐 solo esta instancia
 app.register_blueprint(bp)
+# 🔢 Filtro para convertir strings tipo "$ 12,345.67" a float
+def to_float(value):
+    try:
+        if isinstance(value, str):
+            value = value.replace('$', '').replace(',', '').strip()
+        return float(value)
+    except:
+        return 0.0
+
+# 📎 Registrar el filtro en la app Flask (no en el Blueprint)
+app.add_template_filter(to_float, 'to_float')
+
 
 # ▶️ Ejecutar con python app.py
 if __name__ == '__main__':
